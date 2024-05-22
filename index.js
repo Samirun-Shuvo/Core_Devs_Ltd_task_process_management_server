@@ -1,16 +1,16 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  "mongodb+srv://samirunshuvo:zBhwLoqQ4soluxu5@cluster11.iypphi5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster11";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster11.iypphi5.mongodb.net/?retryWrites=true&w=majority&appName=Cluster11`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -25,8 +25,10 @@ async function run() {
     await client.connect();
     console.log("Successfully connected to MongoDB!");
 
-    const userCollection = client.db("anlima_admin").collection("users");
-    const processCollection = client.db("anlima_admin").collection("process");
+    const userCollection = client.db(process.env.DB_NAME).collection("users");
+    const processCollection = client
+      .db(process.env.DB_NAME)
+      .collection("process");
 
     app.get("/user", async (req, res) => {
       try {
@@ -81,34 +83,38 @@ async function run() {
     });
 
     app.put("/allprocess/:id", async (req, res) => {
-        try {
-          const id = req.params.id;
-          const updatedProcess = req.body;
-          const query = { _id: new ObjectId(id) };
-          const update = {
-            $set: {
-              name: updatedProcess.name,
-              currentTime: new Date(updatedProcess.currentTime),
-            },
-          };
-      
-          const result = await processCollection.updateOne(query, update);
-      
-          if (result.modifiedCount === 1) {
-            const updatedProcesses = await processCollection.find({}).toArray();
-            res.send({
-              status: "success",
-              message: "Process updated successfully",
-              result: updatedProcesses,
-            });
-          } else {
-            res.status(404).send({ status: "error", message: "Process not found" });
-          }
-        } catch (error) {
-          console.error("Error updating process", error);
-          res.status(500).send({ status: "error", message: "Internal Server Error" });
+      try {
+        const id = req.params.id;
+        const updatedProcess = req.body;
+        const query = { _id: new ObjectId(id) };
+        const update = {
+          $set: {
+            name: updatedProcess.name,
+            currentTime: new Date(updatedProcess.currentTime),
+          },
+        };
+
+        const result = await processCollection.updateOne(query, update);
+
+        if (result.modifiedCount === 1) {
+          const updatedProcesses = await processCollection.find({}).toArray();
+          res.send({
+            status: "success",
+            message: "Process updated successfully",
+            result: updatedProcesses,
+          });
+        } else {
+          res
+            .status(404)
+            .send({ status: "error", message: "Process not found" });
         }
-      });
+      } catch (error) {
+        console.error("Error updating process", error);
+        res
+          .status(500)
+          .send({ status: "error", message: "Internal Server Error" });
+      }
+    });
 
     app.post("/createprocess", async (req, res) => {
       try {
